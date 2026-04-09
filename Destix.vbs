@@ -2,11 +2,11 @@ Dim wsh, fso
 Set wsh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 
-' Попередження
+' РџРѕРїРµСЂРµРґР¶РµРЅРЅСЏ
 answer = MsgBox("This is very dangerous VBScript file." & vbCrLf & "Run?", 48 + 4, "Destix.vbs - Warning")
 If answer = 7 Then WScript.Quit
 
-' Вибір рівня
+' Р’РёР±С–СЂ СЂС–РІРЅСЏ
 level = InputBox("Choose Level 1-4:" & vbCrLf & _
 "1. Soft" & vbCrLf & _
 "2. Basic" & vbCrLf & _
@@ -17,19 +17,11 @@ If level = "" Then WScript.Quit
 
 Randomize
 
-' Налаштування
-If level = "1" Then
-    delay = 1000: duration = 25
-ElseIf level = "2" Then
-    delay = 800: duration = 45
-ElseIf level = "3" Then
-    delay = 700: duration = 50
-ElseIf level = "4" Then
-    delay = 500: duration = 30
-Else
-    MsgBox "Invalid level!", 16, "Error"
-    WScript.Quit
-End If
+' РќР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ
+If level = "1" Then delay = 1000: duration = 25
+If level = "2" Then delay = 800: duration = 45
+If level = "3" Then delay = 700: duration = 50
+If level = "4" Then delay = 500: duration = 30
 
 MsgBox "Destix Level " & level & " Activated", 64, "Destix"
 
@@ -38,11 +30,12 @@ lastCmdTime = 0
 lastDiscoTime = 0
 lastFileTime = 0
 lastInputTime = 0
+basicFolderCreated = False
 
 Do
     elapsed = Timer - startTime
 
-    ' Помилки
+    ' ===== РЎРџРРЎРћРљ РџРћРњРР›РћРљ =====
     rText = Int(Rnd * 5)
     If rText = 0 Then msg = "Error: 0x0000000A"
     If rText = 1 Then msg = "DIR ERROR: C:\Windoms"
@@ -53,29 +46,112 @@ Do
     rIcon = Int(Rnd * 2)
     If rIcon = 0 Then icon = 16 Else icon = 48
 
-    ' ===== DESTICSIVE =====
-    If level = "4" Then
-
-        ' Payload 1 (0–10 сек)
+    ' ===== SOFT =====
+    If level = "1" Then
         If elapsed < 10 Then
+            wsh.Run "mshta ""javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('" & msg & "',1,'Error'," & icon & ");close();"""
+        End If
+        If elapsed >= 10 And elapsed < 25 Then
+            r = Int(Rnd * 2)
+            If r = 0 Then wsh.Run "cmd" Else wsh.Run "calc"
+            WScript.Sleep 500
+            k = Int(Rnd * 2)
+            If k = 0 Then wsh.SendKeys "a" Else wsh.SendKeys "b"
+        End If
+    End If
 
-            ' запуск disco2.py (3 рази з інтервалом)
-            If Timer - lastDiscoTime > 3 Then
-                wsh.Run "py disco2.py"
+    ' ===== BASIC =====
+    If level = "2" Then
+        If elapsed < 10 Then
+            count = 1 + Int(Rnd * 3)
+            For i = 1 To count
+                wsh.Run "mshta ""javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('" & msg & "',1,'Error'," & icon & ");close();"""
+            Next
+        End If
+        If elapsed >= 10 And elapsed < 30 Then
+            If Not basicFolderCreated Then
+                If Not fso.FolderExists("BASIC") Then fso.CreateFolder("BASIC")
+                basicFolderCreated = True
+            End If
+            r = Int(Rnd * 4)
+            If r = 0 Then wsh.Run "explorer"
+            If r = 1 Then wsh.Run "calc"
+            If r = 2 Then wsh.Run "cmd"
+            If r = 3 Then wsh.Run "notepad"
+            WScript.Sleep 500
+            chars = "abcdef0123456789"
+            ch = Mid(chars, 1 + Int(Rnd * Len(chars)), 1)
+            wsh.SendKeys ch
+        End If
+        If elapsed >= 30 And elapsed < 45 Then
+            If Timer - lastCmdTime > 3 Then
+                wsh.Run "cmd /k start && pause"
+                lastCmdTime = Timer
+            End If
+        End If
+    End If
+
+    ' ===== INSANE =====
+    If level = "3" Then
+        ' Payload 1 (0вЂ“15 СЃРµРє)
+        If elapsed < 15 Then
+            If Timer - lastDiscoTime > 5 Then
+                wsh.Run "py disco.py"
                 lastDiscoTime = Timer
             End If
+            count = 2 + Int(Rnd * 3)
+            For i = 1 To count
+                wsh.Run "mshta ""javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('" & msg & "',1,'Error'," & icon & ");close();"""
+            Next
+        End If
+        ' Payload 2 (15вЂ“35 СЃРµРє)
+        If elapsed >= 15 And elapsed < 35 Then
+            If Timer - lastFileTime > 3 Then
+                For i = 1 To 5
+                    name = "file_" & Int(Rnd * 100000) & ".txt"
+                    Set f = fso.CreateTextFile(name, True)
+                    chars = "abcdef0123456789"
+                    text = ""
+                    For j = 1 To 20
+                        text = text & Mid(chars, 1 + Int(Rnd * Len(chars)), 1)
+                    Next
+                    f.Write text
+                    f.Close
+                Next
+                lastFileTime = Timer
+            End If
+        End If
+        ' Payload 3 (35вЂ“50 СЃРµРє)
+        If elapsed >= 35 And elapsed < 50 Then
+            If Timer - lastCmdTime > 2 Then
+                wsh.Run "cmd /k start && pause"
+                lastCmdTime = Timer
+            End If
+            count = 2 + Int(Rnd * 3)
+            For i = 1 To count
+                wsh.Run "mshta ""javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('" & msg & "',1,'Error'," & icon & ");close();"""
+            Next
+        End If
+    End If
 
-            ' 1-2 помилки
+    ' ===== DESTICSIVE =====
+    If level = "4" Then
+        ' Payload 1 (0вЂ“10 СЃРµРє)
+        If elapsed < 10 Then
+            If Timer - lastDiscoTime > 3 Then
+                For i = 1 To 3
+                    wsh.Run "py disco2.py"
+                Next
+                lastDiscoTime = Timer
+            End If
             count = 1 + Int(Rnd * 2)
             For i = 1 To count
                 wsh.Run "mshta ""javascript:var sh=new ActiveXObject('WScript.Shell'); sh.Popup('" & msg & "',1,'Error'," & icon & ");close();"""
             Next
         End If
-
-        ' Payload 2 (10–30 сек)
+        ' Payload 2 (10вЂ“30 СЃРµРє)
         If elapsed >= 10 And elapsed < 30 Then
-
-            ' InputBox кожні 5 сек
+            ' InputBox РєРѕР¶РЅС– 5 СЃРµРє
             If Timer - lastInputTime > 5 Then
                 Do
                     code = InputBox("Enter code 1234:", "Security Check")
@@ -83,8 +159,7 @@ Do
                 Loop
                 lastInputTime = Timer
             End If
-
-            ' відкриття програм кожну 1 сек
+            ' РІС–РґРєСЂРёС‚С‚СЏ РїСЂРѕРіСЂР°Рј РєРѕР¶РЅСѓ 1 СЃРµРє
             If Timer - lastCmdTime > 1 Then
                 r = Int(Rnd * 3)
                 If r = 0 Then wsh.Run "cmd"
@@ -92,17 +167,14 @@ Do
                 If r = 2 Then wsh.Run "calc"
                 lastCmdTime = Timer
             End If
-
         End If
-
     End If
 
     WScript.Sleep delay
-
     If elapsed > duration Then Exit Do
 Loop
 
-' Фінал
+' Р¤С–РЅР°Р»
 If level = "4" Then
     MsgBox "Your PC Desticed!!!", 16, "Destix"
 Else
